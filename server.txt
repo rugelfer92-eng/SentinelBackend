@@ -14,6 +14,9 @@ app.use(express.json());
 // CONFIGURACIÓN DE PUERTO (Asegúrate que coincida con tu API_URL en la App)
 const PORT = 3000; 
 
+
+
+
 //============================================================ Modelos de Base de Datos
 // Esquema de Sensores (Cava Tucape)
 const SensorSchema = new mongoose.Schema({
