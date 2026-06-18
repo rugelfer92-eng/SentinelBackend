@@ -1,0 +1,164 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+
+const app = express();
+
+//============================================================ Middlewares
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
+app.use(express.json());
+
+// CONFIGURACIÓN DE PUERTO (Asegúrate que coincida con tu API_URL en la App)
+const PORT = 3000; 
+
+//============================================================ Modelos de Base de Datos
+// Esquema de Sensores (Cava Tucape)
+const SensorSchema = new mongoose.Schema({
+  temperatura: Number,
+  voltaje: Number,
+  humedad: Number,
+  fecha: { type: Date, default: Date.now }
+});
+
+// Esquema de Personal (Corregido: Sin duplicados y con Array de días)
+const PersonalSchema = new mongoose.Schema({
+  cedula: { type: String, required: true, unique: true },
+  nombreApellido: { type: String, required: true },
+  telefono: String,
+  cargo: String,
+  diasLaborales: [String], // Coincide con el selector táctil de la App
+  turno: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Sensor = mongoose.model('Sensor', SensorSchema);
+const Personal = mongoose.model('Personal', PersonalSchema);
+
+//============================================================ Simulación de Datos (Pruebas)
+const inyectarDatosAzar = () => {
+  setInterval(async () => {
+    try {
+      const nuevoDato = new Sensor({
+        temperatura: parseFloat((Math.random() * 8).toFixed(1)), 
+        voltaje: Math.floor(Math.random() * (135 - 95 + 1) + 95),  
+        humedad: Math.floor(Math.random() * (90 - 40 + 1) + 40)
+      });
+      await nuevoDato.save();
+      // Descomenta si quieres ver el log en consola:
+      // console.log(`📡 Cava: ${nuevoDato.temperatura}°C | ${nuevoDato.voltaje}V`);
+    } catch (err) {
+      console.error("❌ Error inyectando datos:", err);
+    }
+  }, 5000);
+};
+
+//============================================================ Rutas de Sensores
+// Obtener el último estado de la cava
+app.get('/api/sensores/ultimo', async (req, res) => {
+  try {
+    const ultimoDato = await Sensor.findOne().sort({ fecha: -1 });
+    res.json(ultimoDato || { temperatura: 0, voltaje: 0, humedad: 0 });
+  } catch (error) {
+    res.status(500).json({ message: "Error en el servidor de sensores" });
+  }
+});
+
+// Obtener historial para los gráficos (Últimos 50 registros)
+app.get('/api/sensores/historial', async (req, res) => {
+  try {
+    const historial = await Sensor.find().sort({ fecha: -1 }).limit(50);
+    res.json(historial.reverse()); // Reverse para que el gráfico vaya de pasado a presente
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener historial" });
+  }
+});
+
+//============================================================ Rutas de Empleados
+// Obtener todos
+app.get('/api/empleados', async (req, res) => {
+  try {
+    const lista = await Personal.find().sort({ createdAt: -1 });
+    res.json(lista);
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener personal" });
+  }
+});
+
+// Registrar nuevo
+app.post('/api/empleados', async (req, res) => {
+  try {
+    const nuevo = new Personal(req.body);
+    await nuevo.save();
+    res.status(201).json({ message: "Personal registrado correctamente" });
+  } catch (error) {
+    res.status(500).json({ message: "Error: Cédula duplicada o datos inválidos" });
+  }
+});
+
+// Actualizar empleado
+app.put('/api/empleados/:id', async (req, res) => {
+  try {
+    await Personal.findByIdAndUpdate(req.params.id, req.body);
+    res.json({ message: "Empleado actualizado" });
+  } catch (error) {
+    res.status(500).json({ message: "Error al actualizar" });
+  }
+});
+
+// Eliminar empleado
+app.delete('/api/empleados/:id', async (req, res) => {
+  try {
+    await Personal.findByIdAndDelete(req.params.id);
+    res.json({ message: "Empleado eliminado" });
+  } catch (error) {
+    res.status(500).json({ message: "Error al eliminar" });
+  }
+});
+
+//============================================================ Buscador de Historial
+// Ruta para buscar 5 min antes y 5 min después
+app.get('/api/sensores/ventana', async (req, res) => {
+  try {
+    const { hora } = req.query; // Espera "HH:MM"
+    if (!hora) return res.status(400).json({ message: "Hora requerida" });
+
+    const [h, m] = hora.split(':').map(Number);
+    
+    // Configuramos la hora base en el día actual
+    const fechaBase = new Date();
+    fechaBase.setHours(h, m, 0, 0);
+
+    // Calculamos el rango de 10 minutos totales
+    const cincoAntes = new Date(fechaBase.getTime() - 5 * 60000);
+    const cincoDespues = new Date(fechaBase.getTime() + 5 * 60000);
+
+    const registros = await Sensor.find({
+      fecha: { $gte: cincoAntes, $lte: cincoDespues }
+    })
+    .sort({ fecha: 1 })
+    .limit(10); // Limitamos a los 10 registros solicitados
+
+    res.json(registros);
+  } catch (error) {
+    res.status(500).json({ message: "Error en la consulta de ventana" });
+  }
+});
+
+//============================================================ Arranque del Proyecto
+mongoose.connect('mongodb://127.0.0.1:27017/sentinelDB')
+  .then(() => {
+    console.log("✅ Sentinel-Cold: Conectado a MongoDB");
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 SERVIDOR SENTINEL ACTIVO EN PUERTO: ${PORT}`);
+      console.log(`🔗 Asegúrate de usar esta IP en la App: 192.168.1.XX (Tu IP Local)`);
+      console.log(`📍 Ubicación de Control: Tucape`);
+      
+      // Iniciamos la simulación para tener datos que ver en la App
+      inyectarDatosAzar();
+    });
+  })
+  .catch(err => console.error("❌ Error Crítico de conexión:", err));
