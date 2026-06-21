@@ -102,11 +102,6 @@ mongoose.connect('mongodb://0.0.0.0:27017/sentinelDB')
       console.log('');
       console.log('🚀 ══════════════════════════════════════════');
       console.log(`   SENTINEL COLD — SERVIDOR ACTIVO`);
-      console.log(`   Puerto  : ${PORT}`);
-      console.log(`   Red WiFi: http://${ip}:${PORT}`);
-      console.log(`   Local   : http://localhost:${PORT}`);
-      console.log('   ─────────────────────────────────────────');
-      console.log(`   Configura la app con IP: ${ip}`);
       console.log('🚀 ══════════════════════════════════════════');
       console.log('');
     });
