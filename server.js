@@ -11,7 +11,7 @@ require('./models/personal');
 require('./models/configuracion');
 require('./models/estado');
 require('./models/auditoria');
-require('./models/sesion');          // ← NUEVO: sesiones de usuario
+require('./models/sesion');
 
 // ── Rutas ──────────────────────────────────────────────────────────
 const rutasSensores      = require('./routes/sensores');
@@ -25,18 +25,24 @@ const rutasPdf           = require('./routes/pdf');
 const app    = express();
 const server = http.createServer(app);
 
+process.on('uncaughtException', (err) => {
+  console.error('Excepción no capturada (el servidor sigue corriendo):', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Promesa rechazada sin manejar (el servidor sigue corriendo):', reason);
+});
+
 // ── Socket.IO (tiempo real ESP32 → App vía WiFi) ──────────────────
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 
-// Hacer io accesible desde las rutas
 app.set('io', io);
 
 io.on('connection', (socket) => {
   console.log(`🔌 Cliente conectado: ${socket.id}`);
 
-  // El ESP32 o la app pueden enviar datos de sensor
   socket.on('sensor_data', async (data) => {
     try {
       const Sensor = mongoose.model('Sensor');
@@ -46,16 +52,15 @@ io.on('connection', (socket) => {
         humedad:     data.hum  ?? data.humedad,
       });
       await nuevo.save();
-      // Reenviar a TODOS los clientes conectados (app móvil)
       io.emit('sensor_update', nuevo);
-      console.log(`📡 Sensor guardado y emitido: ${nuevo.temperatura}°C`);
+      console.log(`Sensor guardado y emitido: ${nuevo.temperatura}°C`);
     } catch (err) {
-      console.error('❌ Error guardando sensor:', err.message);
+      console.error('Error guardando sensor:', err.message);
     }
   });
 
   socket.on('disconnect', () => {
-    console.log(`🔌 Cliente desconectado: ${socket.id}`);
+    console.log(`Cliente desconectado: ${socket.id}`);
   });
 });
 
@@ -106,4 +111,4 @@ mongoose.connect('mongodb://0.0.0.0:27017/sentinelDB')
       console.log('');
     });
   })
-  .catch(err => console.error('🔴 Error MongoDB:', err));
+  .catch(err => console.error('Error MongoDB:', err));
