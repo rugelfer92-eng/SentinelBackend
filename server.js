@@ -45,17 +45,23 @@ io.on('connection', (socket) => {
 
   socket.on('sensor_data', async (data) => {
     try {
+      console.log('sensor_data recibido:', JSON.stringify(data));
       const Sensor = mongoose.model('Sensor');
-      const nuevo  = new Sensor({
-        temperatura: data.temp ?? data.temperatura,
-        voltaje:     data.volt ?? data.voltaje,
-        humedad:     data.hum  ?? data.humedad,
-      });
+      const temperatura = data.temp ?? data.temperatura ?? data.temperature;
+      const voltaje = data.volt ?? data.voltaje ?? data.voltage;
+      const humedad = data.hum ?? data.humedad ?? data.humidity;
+
+      if (temperatura == null && voltaje == null && humedad == null) {
+        console.warn('sensor_data recibido sin valores válidos:', data);
+        return;
+      }
+
+      const nuevo = new Sensor({ temperatura, voltaje, humedad });
       await nuevo.save();
       io.emit('sensor_update', nuevo);
       console.log(`Sensor guardado y emitido: ${nuevo.temperatura}°C`);
     } catch (err) {
-      console.error('Error guardando sensor:', err.message);
+      console.error('Error guardando sensor:', err);
     }
   });
 

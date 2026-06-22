@@ -38,11 +38,20 @@ router.get('/ventana', async (req, res) => {
 // POST: Guardar datos enviados desde la App (que vienen del ESP32)
 router.post('/', async (req, res) => {
   try {
-    const { temperatura, voltaje, humedad } = req.body;
+    console.log('POST /api/sensores recibido:', req.body);
+    const temperatura = req.body.temperatura ?? req.body.temperature;
+    const voltaje = req.body.voltaje ?? req.body.voltage;
+    const humedad = req.body.humedad ?? req.body.humidity;
+
+    if (temperatura == null && voltaje == null && humedad == null) {
+      return res.status(400).json({ message: "No se recibieron datos de sensor válidos" });
+    }
+
     const nuevoDato = new Sensor({ temperatura, voltaje, humedad });
     await nuevoDato.save();
     res.status(201).json({ mensaje: "Dato de sensor guardado" });
   } catch (error) {
+    console.error('Error guardando POST /api/sensores:', error);
     res.status(500).json({ message: "Error al guardar dato" });
   }
 });
