@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama Lógico - Base de Datos SentinelBackend</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 1200px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        .instructions {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            border-radius: 4px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Diagrama Lógico - Base de Datos SentinelBackend</h1>
+        
+        <div class="mermaid">
+erDiagram
+    PERSONAL ||--o{ AUDITORIA : "realiza"
+    PERSONAL ||--o{ SESION : "inicia"
+    
+    PERSONAL {
+        string cedula PK
+        string nombreApellido
+        string telefono
+        string cargo
+        string[] diasLaborales
+        string turno
+        string password
+        string role
+        date createdAt
+        date updatedAt
+    }
+    
+    AUDITORIA {
+        objectId realizadoPor_id FK
+        string realizadoPor_nombre
+        string realizadoPor_role
+        string accion
+        string entidad_tipo
+        string entidad_id
+        string entidad_nombre
+        mixed detalle
+        date fecha
+    }
+    
+    SESION {
+        objectId usuario_id FK
+        string usuario_nombre
+        string usuario_cedula
+        string usuario_role
+        string accion
+        string ip
+        string dispositivo
+        date fecha
+    }
+    
+    SENSOR {
+        number temperatura
+        number voltaje
+        number humedad
+        date fecha
+    }
+    
+    CONFIG {
+        number temp_max
+        number temp_min
+        number volt_max
+        number volt_min
+        number hum_max
+        number hum_min
+        date actualizadoEn
+    }
+    
+    ESTADO {
+        string nombre
+        boolean relayStatus
+        date lastChange
+    }
+        </div>
+
+        <div class="instructions">
+            <h3>📥 Cómo exportar a PNG:</h3>
+            <ul>
+                <li><strong>Opción 1 (Recomendada):</strong> Click derecho en el diagrama → "Guardar imagen como..."</li>
+                <li><strong>Opción 2:</strong> Abre la consola (F12) → haz screenshot del diagrama</li>
+                <li><strong>Opción 3:</strong> Usa Mermaid CLI: <code>npm install -g @mermaid-js/mermaid-cli</code></li>
+                <li><strong>Opción 4:</strong> Copia el código mermaid en <a href="https://mermaid.live" target="_blank">mermaid.live</a> y exporta desde ahí</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>
